@@ -2,54 +2,156 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🌤️ Cute Weather App</title>
+  <title>🌤 Modern Weather App</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
     body {
-      background: #ffe6f2;
-      font-family: "Poppins", sans-serif;
-      text-align: center;
-      color: #ff4da6;
-      padding: 40px;
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #6dd5fa, #2980b9);
+      color: #fff;
+      margin: 0;
+      overflow: hidden;
     }
-    .weather {
-      background: #fff0f5;
-      padding: 20px;
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 15px;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      width: 250px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      background: #fff;
+      color: #2980b9;
+      font-weight: 600;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #2980b9;
+      color: white;
+    }
+
+    #weather {
+      margin-top: 30px;
+      padding: 25px;
       border-radius: 15px;
-      box-shadow: 0 0 10px rgba(255,153,204,0.4);
-      display: inline-block;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      text-align: center;
+      width: 320px;
+      animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .icon {
+      width: 80px;
+      height: 80px;
+    }
+
+    .forecast {
+      margin-top: 15px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .data p {
+      margin: 5px 0;
     }
   </style>
 </head>
 <body>
-  <h1>🌸 Cute Weather App 🌸</h1>
-  <input type="text" id="city" placeholder="Enter city..." />
-  <button onclick="getWeather()">💖 Get Weather</button>
+  <h1>🌎 Interactive Weather App</h1>
 
-  <div class="weather" id="weather"></div>
+  <div class="search-box">
+    <input type="text" id="cityInput" placeholder="Enter a city (e.g. Tokyo)">
+    <button onclick="getWeather()">Search</button>
+  </div>
+
+  <div id="weather"></div>
 
   <script>
+    const apiKey = "YOUR_API_KEY_HERE"; // Replace with your OpenWeatherMap key
+
     async function getWeather() {
-      const city = document.getElementById('city').value;
-      const apiKey = 'YOUR_API_KEY_HERE'; // ← Replace with your OpenWeatherMap API key
-      const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`;
+      const city = document.getElementById("cityInput").value;
+      const weatherDiv = document.getElementById("weather");
+      if (!city) return alert("Please enter a city name!");
+      weatherDiv.innerHTML = "Loading...";
 
-      const res = await fetch(url);
-      const data = await res.json();
+      try {
+        const response = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`
+        );
+        const forecastResponse = await fetch(
+          `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`
+        );
 
-      if (data.cod !== 200) {
-        document.getElementById('weather').innerHTML = "❌ City not found!";
-        return;
+        const data = await response.json();
+        const forecastData = await forecastResponse.json();
+
+        if (data.cod != 200) {
+          weatherDiv.innerHTML = `<p>❌ City not found.</p>`;
+          return;
+        }
+
+        const { name } = data;
+        const { temp, humidity } = data.main;
+        const { speed: wind } = data.wind;
+        const { description, icon } = data.weather[0];
+        const timezoneOffset = data.timezone;
+        const localTime = new Date(Date.now() + timezoneOffset * 1000).toUTCString();
+
+        const iconUrl = `https://openweathermap.org/img/wn/${icon}@2x.png`;
+
+        // Get a few forecast samples
+        const upcoming = forecastData.list.slice(0, 4).map(item => {
+          const time = new Date(item.dt * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          return `${time}: ${item.weather[0].description}, ${Math.round(item.main.temp)}°C`;
+        }).join("<br>");
+
+        weatherDiv.innerHTML = `
+          <img src="${iconUrl}" class="icon" alt="Weather icon">
+          <h2>${name}</h2>
+          <div class="data">
+            <p><strong>Local Time:</strong> ${localTime}</p>
+            <p><strong>Condition:</strong> ${description}</p>
+            <p><strong>Temperature:</strong> ${Math.round(temp)} °C</p>
+            <p><strong>Humidity:</strong> ${humidity}%</p>
+            <p><strong>Wind Speed:</strong> ${wind} m/s</p>
+          </div>
+          <div class="forecast">
+            <h3>Next Hours</h3>
+            <p>${upcoming}</p>
+          </div>
+        `;
+      } catch (err) {
+        weatherDiv.innerHTML = `<p>⚠️ Error fetching weather data.</p>`;
       }
-
-      const weatherHTML = `
-        <h2>${data.name} 🌦️</h2>
-        <p>Temperature: ${data.main.temp}°C 🌡️</p>
-        <p>Condition: ${data.weather[0].description} ☁️</p>
-        <p>Humidity: ${data.main.humidity}% 💧</p>
-        <p>Wind: ${data.wind.speed} m/s 🌬️</p>
-      `;
-      document.getElementById('weather').innerHTML = weatherHTML;
     }
   </script>
 </body>
